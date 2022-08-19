@@ -2,9 +2,9 @@ name: ci-test
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   test:
@@ -28,16 +28,20 @@ jobs:
 
     steps:
       - name: Setup Go version 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: ^1.9
+          go-version: ^1.18
         id: go
 
       - name: Checkout the code of this respo into runner
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run database migrations
-        run: cker run --rm -v $(pwd)/db/migration:/db/migration --network=host migrate/migrate -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up
+        uses: addnab/docker-run-action@v3
+        with:
+          image: migrate/migrate
+          options: -v ${{ github.workspace }}/db/migration:/db/migration --network=host migrate/migrate -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose
+          run: up
 
       - name: Run tests
         run: make test
