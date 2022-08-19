@@ -1,0 +1,43 @@
+name: ci-test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:12
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: simple_bank
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Setup Go version 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.9
+        id: go
+
+      - name: Checkout the code of this respo into runner
+        uses: actions/checkout@v2
+
+      - name: Run database migrations
+        run: cker run --rm -v $(pwd)/db/migration:/db/migration --network=host migrate/migrate -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up
+
+      - name: Run tests
+        run: make test
