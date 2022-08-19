@@ -41,7 +41,7 @@ jobs:
         with:
           image: migrate/migrate
           options: -v ${{ github.workspace }}/db/migration:/db/migration
-          run: -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up
+          run: up -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose
 
       - name: Run tests
         run: make test
