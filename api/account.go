@@ -11,7 +11,7 @@ import (
 // Creates new account
 type createAccountRequest struct {
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR"`
+	Currency string `json:"currency" binding:"required,oneof=USD EUR CAD AUD"`
 }
 
 func (server *Server) createAccount(ctx *gin.Context) {
@@ -144,6 +144,10 @@ func (server *Server) deleteAccount(ctx *gin.Context) {
 	}
 
 	if err := server.store.DeleteAccount(ctx, req.ID); err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
