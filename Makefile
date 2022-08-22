@@ -10,8 +10,14 @@ dropdb:
 migrateup:
 	docker run --rm -v $(CURDIR)/db/migration:/db/migration --network=host migrate/migrate -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up
 
+migrateup1:
+	docker run --rm -v $(CURDIR)/db/migration:/db/migration --network=host migrate/migrate -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose up 1
+
 migratedown:
-	docker run --rm -v $(CURDIR)/db/migration:/db/migration --network=host migrate/migrate -path=/db/migrations -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down
+	docker run --rm -v $(CURDIR)/db/migration:/db/migration --network=host migrate/migrate -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down -all
+
+migratedown1:
+	docker run --rm -v $(CURDIR)/db/migration:/db/migration --network=host migrate/migrate -path=/db/migration -database="postgres://root:secret@localhost:5432/simple_bank?sslmode=disable" -verbose down 1
 
 sqlc:
 	docker run --rm -v $(CURDIR):/src -w /src kjconroy/sqlc generate
@@ -25,4 +31,4 @@ server:
 mock:
 	mockgen --package=mockdb --destination=db/mock/store.go github.com/sbbullet/simple-bank/db/sqlc Store
 
-.PHONY: postgres createdb dropdb migrateup migratedown server mock
+.PHONY: postgres createdb dropdb migrateup migrateup1 migratedown migratedown1 server mock
