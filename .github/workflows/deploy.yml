@@ -13,6 +13,12 @@ jobs:
       - name: Checkout the code of this respo into runner
         uses: actions/checkout@v3
 
+      - name: Load secrets and write to app.env
+        run: 'echo "$APP_SECRETS" > app.env && tail app.env'
+        shell: bash
+        env:
+          APP_SECRETS: ${{ secrets.APP_SECRETS }}
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
