@@ -2,12 +2,14 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	db "github.com/sbbullet/simple-bank/db/sqlc"
+	"github.com/sbbullet/simple-bank/token"
 )
 
 // Creates new account
@@ -24,8 +26,9 @@ func (server *Server) createAccount(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Balance:  0,
 		Currency: req.Currency,
 	}
@@ -71,6 +74,13 @@ func (server *Server) getAccount(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account doesn't belong to authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
 	ctx.JSON(http.StatusOK, account)
 }
 
@@ -88,7 +98,9 @@ func (server *Server) listAccounts(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.ListAccountsParams{
+		Owner:  authPayload.Username,
 		Limit:  req.PageSize,
 		Offset: (req.PageNum - 1) * req.PageSize,
 	}
@@ -153,13 +165,26 @@ func (server *Server) deleteAccount(ctx *gin.Context) {
 		return
 	}
 
-	if err := server.store.DeleteAccount(ctx, req.ID); err != nil {
+	account, err := server.store.GetAccount(ctx, req.ID)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if authPayload.Username != account.Owner {
+		err := errors.New("account doesn't belong to authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	err = server.store.DeleteAccount(ctx, account.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully deleted account"})
