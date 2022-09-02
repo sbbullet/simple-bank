@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -11,9 +12,15 @@ import (
 	db "github.com/sbbullet/simple-bank/db/sqlc"
 	pb "github.com/sbbullet/simple-bank/pb"
 	"github.com/sbbullet/simple-bank/util"
+	"github.com/sbbullet/simple-bank/validation"
 )
 
 func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
+	violations := validateLoginUserRequest(req)
+	if violations != nil {
+		return nil, invalidArgumentError(violations)
+	}
+
 	user, err := server.store.GetUser(ctx, req.GetUsername())
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -60,4 +67,16 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 		User:                  convertUser(user),
 	}
 	return res, nil
+}
+
+func validateLoginUserRequest(req *pb.LoginUserRequest) (violations []*errdetails.BadRequest_FieldViolation) {
+	if err := validation.ValidateUsername(req.GetUsername()); err != nil {
+		violations = append(violations, fieldViolation("username", err))
+	}
+
+	if err := validation.ValidatePassword(req.GetPassword()); err != nil {
+		violations = append(violations, fieldViolation("password", err))
+	}
+
+	return
 }
