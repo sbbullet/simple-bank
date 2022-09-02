@@ -14,6 +14,7 @@ COPY --from=builder /app/migrate ./migrate
 COPY app.env .
 COPY start.sh .
 COPY wait-for.sh .
+COPY doc/swagger ./doc/swagger
 COPY db/migration ./migration
 
 EXPOSE 8080

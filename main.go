@@ -31,8 +31,15 @@ func main() {
 	}
 
 	store := db.NewStore(conn)
+
+	// gRPC Gateway server
+	// This server has only two endpoints viz creating user and logging in user
 	go runGatewayServer(config, store)
 	runGrpcServer(config, store)
+
+	// only Gin server
+	// This server has all the API of Simple Bank
+	// runGinServer(config, store)
 }
 
 func runGatewayServer(config util.Config, store db.Store) {
