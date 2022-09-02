@@ -7,6 +7,9 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
 	"github.com/sbbullet/simple-bank/api"
@@ -30,6 +33,9 @@ func main() {
 		log.Fatal("Cannot connect to database. Error: ", err)
 	}
 
+	// run DB migrations
+	runDBMigrations(config.MigrationURL, config.DBSource)
+
 	store := db.NewStore(conn)
 
 	// gRPC Gateway server
@@ -40,6 +46,19 @@ func main() {
 	// only Gin server
 	// This server has all the API of Simple Bank
 	// runGinServer(config, store)
+}
+
+func runDBMigrations(migrationURL string, dbSource string) {
+	migration, err := migrate.New(migrationURL, dbSource)
+	if err != nil {
+		log.Fatal("cannot create new migrate instance: ", err)
+	}
+
+	if err := migration.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatal("failed to run migrate up: ", err)
+	}
+
+	log.Println("DB migrated successfully")
 }
 
 func runGatewayServer(config util.Config, store db.Store) {
