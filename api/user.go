@@ -123,6 +123,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	refreshToken, refreshTokenPayload, err := server.tokenMaker.CreateToken(user.Username, server.config.RefreshTokenDuration)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 
 	session, err := server.store.CreateSession(ctx, db.CreateSessionParams{
@@ -136,6 +137,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 
 	res := loginUserResponse{
